@@ -494,10 +494,11 @@ tauri::Builder::default()
 }
 
 /// Desktop APIs.
-#[cfg(all(desktop, feature = "menu"))]
+#[cfg(desktop)]
 impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   /// Sets the menu for the window.
   #[must_use]
+  #[cfg(all(desktop, feature = "menu"))]
   pub fn menu(mut self, menu: crate::menu::Menu<R>) -> Self {
     self.window_builder = self.window_builder.menu(menu);
     self
@@ -746,12 +747,18 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   /// Sets the window to be created transient for parent.
   ///
   /// See <https://docs.gtk.org/gtk3/method.Window.set_transient_for.html>
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  ///
+  // Gated on `gtk3`: it forwards to WindowBuilder::transient_for, which is
+  // GTK-only and absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub fn transient_for(mut self, parent: &WebviewWindow<R>) -> crate::Result<Self> {
     self.window_builder = self.window_builder.transient_for(&parent.window)?;

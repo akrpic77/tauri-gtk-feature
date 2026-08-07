@@ -137,7 +137,7 @@ impl<'a> From<Image<'a>> for crate::runtime::Icon<'a> {
   }
 }
 
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 impl TryFrom<Image<'_>> for muda::Icon {
   type Error = crate::Error;
 

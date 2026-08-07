@@ -753,22 +753,32 @@ pub trait WindowDispatch<T: UserEvent>: Debug + Clone + Send + Sync + Sized + 's
   fn available_monitors(&self) -> Result<Vec<Monitor>>;
 
   /// Returns the `ApplicationWindow` from gtk crate that is used by this window.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   fn gtk_window(&self) -> Result<gtk::ApplicationWindow>;
 
   /// Returns the vertical [`gtk::Box`] that is added by default as the sole child of this window.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   fn default_vbox(&self) -> Result<gtk::Box>;
 

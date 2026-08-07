@@ -56,7 +56,7 @@ uuid = { version = "1", features = ["v4"], optional = true }
 url = "2"
 anyhow = "1"
 thiserror = "2"
-tauri-runtime = { version = "2.11.3", path = "../tauri-runtime" }
+tauri-runtime = { version = "2.11.3", path = "../tauri-runtime", default-features = false }
 tauri-macros = { version = "2.6.3", path = "../tauri-macros" }
 tauri-utils = { version = "2.9.3", features = [
   "resources",
@@ -90,7 +90,7 @@ cookie = "0.18"
 muda = { version = "0.19", default-features = false, features = [
   "serde",
   "gtk",
-] }
+], optional = true }
 tray-icon = { version = "0.24", default-features = false, features = [
   "serde",
   "gtk",
@@ -98,7 +98,7 @@ tray-icon = { version = "0.24", default-features = false, features = [
 
 # linux
 [target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd"))'.dependencies]
-gtk = { version = "0.18", features = ["v3_24"] }
+gtk = { version = "0.18", features = ["v3_24"], optional = true }
 webkit2gtk = { version = "2", features = ["v2_40"], optional = true }
 
 # darwin
@@ -193,23 +193,39 @@ default = [
   "dynamic-acl",
   "x11",
   "dbus",
+  "menu",
+  "gtk3",
 ]
+# Application menus, backed by muda. Default-on so existing apps are
+# unaffected. muda has no gtk-free Linux implementation at all
+# (platform_impl/mod.rs only declares a Linux `platform` module when its own
+# `gtk` feature is set), so this is what a no-GTK Linux build must turn off.
+#
+# Implies `gtk3`: on Linux the menu implementation *is* the GTK
+# integration (muda's init_for_gtk_window, Window::gtk_window/default_vbox), so
+# `menu` without `gtk3` cannot compile there. On Windows/macOS the
+# implication is inert -- `gtk` is only a dependency on Linux targets.
+menu = ["dep:muda", "gtk3"]
+# The GTK-typed parts of the API: Window::gtk_window/default_vbox,
+# transient_for, and tauri-runtime's matching trait methods. A non-GTK runtime
+# (WPE WebKit) turns this off so libgtk-3 is never linked.
+gtk3 = ["dep:gtk", "tauri-runtime/gtk3"]
 unstable = ["tauri-runtime-wry?/unstable"]
 x11 = ["tauri-runtime-wry?/x11"]
 dbus = ["tauri-runtime-wry?/dbus"]
 common-controls-v6 = [
   "tray-icon?/common-controls-v6",
-  "muda/common-controls-v6",
+  "muda?/common-controls-v6",
   "tauri-runtime-wry?/common-controls-v6",
 ]
-tray-icon = ["dep:tray-icon"]
+tray-icon = ["dep:tray-icon", "menu"]
 tracing = ["dep:tracing", "tauri-macros/tracing", "tauri-runtime-wry?/tracing"]
 test = []
 compression = ["tauri-macros/compression", "tauri-utils/compression"]
 wry = ["webview2-com", "webkit2gtk", "tauri-runtime-wry"]
 # TODO: Remove in v3 - wry does not have this feature anymore
 objc-exception = []
-linux-libxdo = ["tray-icon/libxdo", "muda/libxdo"]
+linux-libxdo = ["tray-icon?/libxdo", "muda?/libxdo"]
 isolation = ["tauri-utils/isolation", "tauri-macros/isolation", "uuid"]
 custom-protocol = ["tauri-macros/custom-protocol"]
 # TODO: Remove these flags in v3 and/or enable them by default behind a mobile flag https://github.com/tauri-apps/tauri/issues/12384

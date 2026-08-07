@@ -33,12 +33,9 @@ use crate::{
   WindowEvent,
 };
 #[cfg(desktop)]
-use crate::{
-  image::Image,
-  menu::{ContextMenu, Menu, MenuId},
-  runtime::UserAttentionType,
-  CursorIcon,
-};
+use crate::{image::Image, runtime::UserAttentionType, CursorIcon};
+#[cfg(all(desktop, feature = "menu"))]
+use crate::menu::{ContextMenu, Menu, MenuId};
 
 use serde::Serialize;
 #[cfg(windows)]
@@ -122,9 +119,9 @@ unstable_struct!(
     pub(crate) label: String,
     pub(crate) window_builder:
       <R::WindowDispatcher as WindowDispatch<EventLoopMessage>>::WindowBuilder,
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     pub(crate) menu: Option<Menu<R>>,
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     on_menu_event: Option<crate::app::GlobalMenuEventListener<Window<R>>>,
     window_effects: Option<WindowEffectsConfig>,
     #[cfg(target_os = "android")]
@@ -212,9 +209,9 @@ async fn create_window(app: tauri::AppHandle) {
       label: label.into(),
       window_builder: <R::WindowDispatcher as WindowDispatch<EventLoopMessage>>::WindowBuilder::new(
       ),
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu: None,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       on_menu_event: None,
       window_effects: None,
       #[cfg(target_os = "android")]
@@ -267,9 +264,9 @@ async fn reopen_window(app: tauri::AppHandle) {
         <R::WindowDispatcher as WindowDispatch<EventLoopMessage>>::WindowBuilder::with_config(
           config,
         ),
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu: None,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       on_menu_event: None,
     };
 
@@ -322,7 +319,7 @@ tauri::Builder::default()
   });
 ```"####
   )]
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   pub fn on_menu_event<F: Fn(&Window<R>, crate::menu::MenuEvent) + Send + Sync + 'static>(
     mut self,
     f: F,
@@ -389,7 +386,7 @@ tauri::Builder::default()
 
     let pending = app_manager.window.prepare_window(pending)?;
 
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     let window_menu = {
       let is_app_wide = self.menu.is_none();
       self
@@ -398,11 +395,11 @@ tauri::Builder::default()
         .map(|menu| WindowMenu { is_app_wide, menu })
     };
 
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     let handler = app_manager
       .menu
       .prepare_window_menu_creation_handler(window_menu.as_ref(), theme);
-    #[cfg(not(desktop))]
+    #[cfg(not(all(desktop, feature = "menu")))]
     #[allow(clippy::type_complexity)]
     let handler: Option<Box<dyn Fn(tauri_runtime::window::RawWindow<'_>) + Send>> = None;
 
@@ -415,7 +412,7 @@ tauri::Builder::default()
       let window = app_manager.window.attach_window(
         self.manager.app_handle().clone(),
         detached_window.clone(),
-        #[cfg(desktop)]
+        #[cfg(all(desktop, feature = "menu"))]
         window_menu,
       );
 
@@ -430,7 +427,7 @@ tauri::Builder::default()
       window
     })?;
 
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     if let Some(handler) = self.on_menu_event {
       window.on_menu_event(handler);
     }
@@ -460,6 +457,7 @@ tauri::Builder::default()
 impl<'a, R: Runtime, M: Manager<R>> WindowBuilder<'a, R, M> {
   /// Sets the menu for the window.
   #[must_use]
+  #[cfg(all(desktop, feature = "menu"))]
   pub fn menu(mut self, menu: Menu<R>) -> Self {
     self.menu.replace(menu);
     self
@@ -653,12 +651,17 @@ impl<'a, R: Runtime, M: Manager<R>> WindowBuilder<'a, R, M> {
       self.window_builder = self.window_builder.owner(parent.hwnd()?);
     }
 
-    #[cfg(any(
-      target_os = "linux",
-      target_os = "dragonfly",
-      target_os = "freebsd",
-      target_os = "netbsd",
-      target_os = "openbsd"
+    // Only reachable with `gtk3`; a non-GTK runtime has no
+    // transient_for/gtk_window to call.
+    #[cfg(all(
+      feature = "gtk3",
+      any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+      )
     ))]
     {
       self.window_builder = self.window_builder.transient_for(&parent.gtk_window()?);
@@ -734,12 +737,15 @@ impl<'a, R: Runtime, M: Manager<R>> WindowBuilder<'a, R, M> {
   /// See <https://docs.gtk.org/gtk3/method.Window.set_transient_for.html>
   ///
   /// **Note:** This is a low level API. See [`Self::parent`] for a higher level wrapper for Tauri windows.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub fn transient_for(mut self, parent: &Window<R>) -> crate::Result<Self> {
     self.window_builder = self.window_builder.transient_for(&parent.gtk_window()?);
@@ -751,12 +757,16 @@ impl<'a, R: Runtime, M: Manager<R>> WindowBuilder<'a, R, M> {
   /// See <https://docs.gtk.org/gtk3/method.Window.set_transient_for.html>
   ///
   /// **Note:** This is a low level API. See [`Self::parent`] and [`Self::transient_for`] for higher level wrappers for Tauri windows.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: GTK-typed, absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   #[must_use]
   pub fn transient_for_raw(mut self, parent: &impl gtk::glib::IsA<gtk::Window>) -> Self {
@@ -986,7 +996,7 @@ impl<R: Runtime, M: Manager<R>> WindowBuilder<'_, R, M> {
 
 /// A wrapper struct to hold the window menu state
 /// and whether it is global per-app or specific to this window.
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 pub(crate) struct WindowMenu<R: Runtime> {
   pub(crate) is_app_wide: bool,
   pub(crate) menu: Menu<R>,
@@ -1005,7 +1015,7 @@ pub struct Window<R: Runtime> {
   pub(crate) manager: Arc<AppManager<R>>,
   pub(crate) app_handle: AppHandle<R>,
   // The menu set for this window
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   pub(crate) menu: Arc<Mutex<Option<WindowMenu<R>>>>,
   pub(crate) resources_table: Arc<Mutex<ResourceTable>>,
 }
@@ -1042,7 +1052,7 @@ impl<R: Runtime> Clone for Window<R> {
       window: self.window.clone(),
       manager: self.manager.clone(),
       app_handle: self.app_handle.clone(),
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu: self.menu.clone(),
       resources_table: self.resources_table.clone(),
     }
@@ -1115,13 +1125,13 @@ impl<R: Runtime> Window<R> {
     manager: Arc<AppManager<R>>,
     window: DetachedWindow<EventLoopMessage, R>,
     app_handle: AppHandle<R>,
-    #[cfg(desktop)] menu: Option<WindowMenu<R>>,
+    #[cfg(all(desktop, feature = "menu"))] menu: Option<WindowMenu<R>>,
   ) -> Self {
     Self {
       window,
       manager,
       app_handle,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu: Arc::new(std::sync::Mutex::new(menu)),
       resources_table: Default::default(),
     }
@@ -1198,7 +1208,7 @@ impl<R: Runtime> Window<R> {
 }
 
 /// Menu APIs
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 impl<R: Runtime> Window<R> {
   /// Registers a global menu event listener.
   ///
@@ -1696,12 +1706,16 @@ impl<R: Runtime> Window<R> {
   /// Returns the `ApplicationWindow` from gtk crate that is used by this window.
   ///
   /// Note that this type can only be used on the main thread.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: GTK-typed, absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub fn gtk_window(&self) -> crate::Result<gtk::ApplicationWindow> {
     self.window.dispatcher.gtk_window().map_err(Into::into)
@@ -1710,12 +1724,16 @@ impl<R: Runtime> Window<R> {
   /// Returns the vertical [`gtk::Box`] that is added by default as the sole child of this window.
   ///
   /// Note that this type can only be used on the main thread.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: GTK-typed, absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub fn default_vbox(&self) -> crate::Result<gtk::Box> {
     self.window.dispatcher.default_vbox().map_err(Into::into)

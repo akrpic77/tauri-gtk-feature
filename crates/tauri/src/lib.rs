@@ -99,8 +99,8 @@ use tauri_runtime as runtime;
 pub mod image;
 #[cfg(target_os = "ios")]
 mod ios;
-#[cfg(desktop)]
-#[cfg_attr(docsrs, doc(cfg(desktop)))]
+#[cfg(all(desktop, feature = "menu"))]
+#[cfg_attr(docsrs, doc(cfg(all(desktop, feature = "menu"))))]
 pub mod menu;
 /// Path APIs.
 pub mod path;
@@ -252,7 +252,7 @@ pub fn log_stdout() {
 #[derive(Debug, Clone)]
 pub enum EventLoopMessage {
   /// An event from a menu item, could be on the window menu bar, application menu bar (on macOS) or tray icon menu.
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   MenuEvent(menu::MenuEvent),
   /// An event from a menu item, could be on the window menu bar, application menu bar (on macOS) or tray icon menu.
   #[cfg(all(desktop, feature = "tray-icon"))]

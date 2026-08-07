@@ -97,11 +97,11 @@ pub enum Error {
   FailedToReceiveMessage,
   /// Menu error.
   #[error("menu error: {0}")]
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   Menu(#[from] muda::Error),
   /// Bad menu icon error.
   #[error(transparent)]
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   BadMenuIcon(#[from] muda::BadIcon),
   /// Tray icon error.
   #[error("tray icon error: {0}")]

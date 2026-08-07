@@ -84,13 +84,13 @@ impl<R: Runtime> WindowManager<R> {
     &self,
     app_handle: AppHandle<R>,
     window: DetachedWindow<EventLoopMessage, R>,
-    #[cfg(desktop)] menu: Option<crate::window::WindowMenu<R>>,
+    #[cfg(all(desktop, feature = "menu"))] menu: Option<crate::window::WindowMenu<R>>,
   ) -> Window<R> {
     let window = Window::new(
       app_handle.manager.clone(),
       window,
       app_handle,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu,
     );
 

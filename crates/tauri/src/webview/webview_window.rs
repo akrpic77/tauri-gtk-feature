@@ -21,9 +21,10 @@ use crate::{
 #[cfg(desktop)]
 use crate::{
   image::Image,
-  menu::{ContextMenu, Menu},
   runtime::{window::CursorIcon, UserAttentionType},
 };
+#[cfg(all(desktop, feature = "menu"))]
+use crate::menu::{ContextMenu, Menu};
 use tauri_runtime::webview::NewWindowFeatures;
 use tauri_utils::config::{BackgroundThrottlingPolicy, Color, WebviewUrl, WindowConfig};
 use url::Url;
@@ -187,7 +188,7 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   ///     Ok(())
   ///   });
   /// ```
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   pub fn on_menu_event<F: Fn(&crate::Window<R>, crate::menu::MenuEvent) + Send + Sync + 'static>(
     mut self,
     f: F,
@@ -493,7 +494,7 @@ tauri::Builder::default()
 }
 
 /// Desktop APIs.
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   /// Sets the menu for the window.
   #[must_use]
@@ -760,12 +761,16 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   /// Sets the window to be created transient for parent.
   ///
   /// See <https://docs.gtk.org/gtk3/method.Window.set_transient_for.html>
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: GTK-typed, absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   #[must_use]
   pub fn transient_for_raw(mut self, parent: &impl gtk::glib::IsA<gtk::Window>) -> Self {
@@ -1702,7 +1707,7 @@ impl<R: Runtime> WebviewWindow<R> {
 }
 
 /// Menu APIs
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 impl<R: Runtime> WebviewWindow<R> {
   /// Registers a global menu event listener.
   ///
@@ -1975,12 +1980,16 @@ impl<R: Runtime> WebviewWindow<R> {
   /// Returns the `ApplicationWindow` from gtk crate that is used by this window.
   ///
   /// Note that this type can only be used on the main thread.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: GTK-typed, absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub fn gtk_window(&self) -> crate::Result<gtk::ApplicationWindow> {
     self.window.gtk_window()
@@ -1989,12 +1998,16 @@ impl<R: Runtime> WebviewWindow<R> {
   /// Returns the vertical [`gtk::Box`] that is added by default as the sole child of this window.
   ///
   /// Note that this type can only be used on the main thread.
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: GTK-typed, absent in a non-GTK runtime.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub fn default_vbox(&self) -> crate::Result<gtk::Box> {
     self.window.default_vbox()

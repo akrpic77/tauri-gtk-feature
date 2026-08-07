@@ -448,12 +448,17 @@ pub trait WindowBuilder: WindowBuilderBase {
   /// Sets the window to be created transient for parent.
   ///
   /// See <https://docs.gtk.org/gtk3/method.Window.set_transient_for.html>
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   fn transient_for(self, parent: &impl gtk::glib::IsA<gtk::Window>) -> Self;
 
@@ -648,20 +653,30 @@ impl<T: UserEvent, R: Runtime<T>> PartialEq for DetachedWindow<T, R> {
 pub struct RawWindow<'a> {
   #[cfg(windows)]
   pub hwnd: isize,
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub gtk_window: &'a gtk::ApplicationWindow,
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub default_vbox: Option<&'a gtk::Box>,
   pub _marker: &'a PhantomData<()>,

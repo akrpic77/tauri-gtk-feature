@@ -43,8 +43,8 @@ features = ["Win32_Foundation", "Win32_System_WinRT"]
 webview2-com = "0.38"
 
 [target."cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\"))".dependencies]
-gtk = { version = "0.18", features = ["v3_24"] }
-webkit2gtk = { version = "=2.0", features = ["v2_40"] }
+gtk = { version = "0.18", features = ["v3_24"], optional = true }
+webkit2gtk = { version = "=2.0", features = ["v2_40"], optional = true }
 
 [target."cfg(target_os = \"android\")".dependencies]
 jni = "0.21"
@@ -68,5 +68,10 @@ objc2-web-kit = { version = "0.3.2", default-features = false, features = [
 ] }
 
 [features]
+# Default-on so existing consumers are unaffected. Turning it off drops the
+# GTK/WebKitGTK-typed parts of the runtime API, which is what a non-GTK runtime
+# (e.g. WPE WebKit) needs in order not to link libgtk-3.
+default = ["gtk3"]
+gtk3 = ["dep:gtk", "dep:webkit2gtk"]
 devtools = []
 macos-private-api = []

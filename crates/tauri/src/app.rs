@@ -22,7 +22,7 @@ use crate::{
   Runtime, Scopes, StateManager, Theme, Webview, WebviewWindowBuilder, Window,
 };
 
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 use crate::menu::{Menu, MenuEvent};
 #[cfg(all(desktop, feature = "tray-icon"))]
 use crate::tray::{TrayIcon, TrayIconBuilder, TrayIconEvent, TrayIconId};
@@ -54,7 +54,7 @@ use crate::ActivationPolicy;
 
 pub(crate) mod plugin;
 
-#[cfg(desktop)]
+#[cfg(all(desktop, feature = "menu"))]
 pub(crate) type GlobalMenuEventListener<T> = Box<dyn Fn(&T, crate::menu::MenuEvent) + Send + Sync>;
 #[cfg(all(desktop, feature = "tray-icon"))]
 pub(crate) type GlobalTrayIconEventListener<T> =
@@ -265,8 +265,8 @@ pub enum RunEvent {
     urls: Vec<url::Url>,
   },
   /// An event from a menu item, could be on the window menu bar, application menu bar (on macOS) or tray icon menu.
-  #[cfg(desktop)]
-  #[cfg_attr(docsrs, doc(cfg(desktop)))]
+  #[cfg(all(desktop, feature = "menu"))]
+  #[cfg_attr(docsrs, doc(cfg(all(desktop, feature = "menu"))))]
   MenuEvent(crate::menu::MenuEvent),
   /// An event from a tray icon.
   #[cfg(all(desktop, feature = "tray-icon"))]
@@ -299,7 +299,7 @@ pub enum RunEvent {
 impl From<EventLoopMessage> for RunEvent {
   fn from(event: EventLoopMessage) -> Self {
     match event {
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       EventLoopMessage::MenuEvent(e) => Self::MenuEvent(e),
       #[cfg(all(desktop, feature = "tray-icon"))]
       EventLoopMessage::TrayIconEvent(e) => Self::TrayIconEvent(e),
@@ -804,7 +804,7 @@ macro_rules! shared_app_impl {
   ($app: ty) => {
     impl<R: Runtime> $app {
       /// Registers a global menu event listener.
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       pub fn on_menu_event<F: Fn(&AppHandle<R>, MenuEvent) + Send + Sync + 'static>(
         &self,
         handler: F,
@@ -948,7 +948,7 @@ macro_rules! shared_app_impl {
       }
 
       /// Returns the app-wide menu.
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       pub fn menu(&self) -> Option<Menu<R>> {
         self.manager.menu.menu_lock().clone()
       }
@@ -957,7 +957,7 @@ macro_rules! shared_app_impl {
       ///
       /// If a window was not created with an explicit menu or had one set explicitly,
       /// this menu will be assigned to it.
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       pub fn set_menu(&self, menu: Menu<R>) -> crate::Result<Option<Menu<R>>> {
         let prev_menu = self.remove_menu()?;
 
@@ -996,7 +996,7 @@ macro_rules! shared_app_impl {
       ///
       /// If a window was not created with an explicit menu or had one set explicitly,
       /// this will remove the menu from it.
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       pub fn remove_menu(&self) -> crate::Result<Option<Menu<R>>> {
         let menu = self.manager.menu.menu_lock().as_ref().cloned();
         #[allow(unused_variables)]
@@ -1039,7 +1039,7 @@ macro_rules! shared_app_impl {
       /// ## Platform-specific:
       ///
       /// - **macOS:** Unsupported.
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       pub fn hide_menu(&self) -> crate::Result<()> {
         #[cfg(not(target_os = "macos"))]
         {
@@ -1064,7 +1064,7 @@ macro_rules! shared_app_impl {
       /// ## Platform-specific:
       ///
       /// - **macOS:** Unsupported.
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       pub fn show_menu(&self) -> crate::Result<()> {
         #[cfg(not(target_os = "macos"))]
         {
@@ -1243,7 +1243,7 @@ impl<R: Runtime> App<R> {
     self.handle.plugin(crate::app::plugin::init())?;
     self.handle.plugin(crate::resources::plugin::init())?;
     self.handle.plugin(crate::image::plugin::init())?;
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     self.handle.plugin(crate::menu::plugin::init())?;
     #[cfg(all(desktop, feature = "tray-icon"))]
     self.handle.plugin(crate::tray::plugin::init())?;
@@ -1527,11 +1527,11 @@ pub struct Builder<R: Runtime> {
   state: StateManager,
 
   /// A closure that returns the menu set to all windows.
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   menu: Option<Box<dyn FnOnce(&AppHandle<R>) -> crate::Result<Menu<R>> + Send>>,
 
   /// Menu event listeners for any menu event.
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   menu_event_listeners: Vec<GlobalMenuEventListener<AppHandle<R>>>,
 
   /// Tray event listeners for any tray icon event.
@@ -1609,9 +1609,9 @@ impl<R: Runtime> Builder<R> {
       plugins: PluginStore::default(),
       uri_scheme_protocols: Default::default(),
       state: StateManager::new(),
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu: None,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       menu_event_listeners: Vec::new(),
       #[cfg(all(desktop, feature = "tray-icon"))]
       tray_icon_event_listeners: Vec::new(),
@@ -2018,7 +2018,7 @@ tauri::Builder::default()
   ///   ]));
   /// ```
   #[must_use]
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   pub fn menu<F: FnOnce(&AppHandle<R>) -> crate::Result<Menu<R>> + Send + 'static>(
     mut self,
     f: F,
@@ -2041,7 +2041,7 @@ tauri::Builder::default()
   ///   });
   /// ```
   #[must_use]
-  #[cfg(desktop)]
+  #[cfg(all(desktop, feature = "menu"))]
   pub fn on_menu_event<F: Fn(&AppHandle<R>, MenuEvent) + Send + Sync + 'static>(
     mut self,
     f: F,
@@ -2303,13 +2303,13 @@ tauri::Builder::default()
       self.on_web_content_process_terminate,
       self.uri_scheme_protocols,
       self.state,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       self.menu_event_listeners,
       #[cfg(all(desktop, feature = "tray-icon"))]
       self.tray_icon_event_listeners,
       self.window_event_listeners,
       self.webview_event_listeners,
-      #[cfg(desktop)]
+      #[cfg(all(desktop, feature = "menu"))]
       HashMap::new(),
       self.invoke_initialization_script,
       self.channel_interceptor,
@@ -2389,7 +2389,7 @@ tauri::Builder::default()
     #[cfg(not(any(windows, target_os = "linux")))]
     let mut runtime = R::new(runtime_args)?;
 
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     {
       // setup menu event handler
       let proxy = runtime.create_proxy();
@@ -2427,7 +2427,7 @@ tauri::Builder::default()
 
     app.register_core_plugins()?;
 
-    #[cfg(desktop)]
+    #[cfg(all(desktop, feature = "menu"))]
     if let Some(menu) = self.menu {
       let menu = menu(&app.handle)?;
       app
@@ -2627,7 +2627,7 @@ fn on_event_loop_event<R: Runtime>(
     RuntimeRunEvent::MainEventsCleared => RunEvent::MainEventsCleared,
     RuntimeRunEvent::UserEvent(t) => {
       match t {
-        #[cfg(desktop)]
+        #[cfg(all(desktop, feature = "menu"))]
         EventLoopMessage::MenuEvent(ref e) => {
           for listener in &*app_handle
             .manager

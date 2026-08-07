@@ -97,12 +97,17 @@ pub struct NewWindowOpener {
   /// The instance of the webview that initiated the new window request.
   ///
   /// This must be set as the related view of the new webview. See [`WebviewAttributes::related_view`].
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd",
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub webview: webkit2gtk::WebView,
   /// The instance of the webview that initiated the new window request.
@@ -418,12 +423,17 @@ pub struct WebviewAttributes {
 
   /// Creates a new webview sharing the same web process with the provided webview.
   /// Useful if you need to link a webview to another, for instance when using the [`PendingWebview::new_window_handler`].
-  #[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd",
+  // Gated on `gtk3`: this is GTK/WebKitGTK-typed, so a non-GTK
+  // runtime (WPE WebKit) cannot provide it and must not link gtk.
+  #[cfg(all(
+    feature = "gtk3",
+    any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd"
+    )
   ))]
   pub related_view: Option<webkit2gtk::WebView>,
 
@@ -551,12 +561,15 @@ impl WebviewAttributes {
       limit_navigations_to_app_bound_domains: false,
       #[cfg(windows)]
       environment: None,
-      #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd",
+      #[cfg(all(
+        feature = "gtk3",
+        any(
+          target_os = "linux",
+          target_os = "dragonfly",
+          target_os = "freebsd",
+          target_os = "netbsd",
+          target_os = "openbsd",
+        )
       ))]
       related_view: None,
       #[cfg(target_os = "macos")]
